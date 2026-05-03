@@ -59,8 +59,8 @@ func NewAttendee(tenantID, eventID, userID uuid.UUID, email string, role Attende
 	if eventID == uuid.Nil {
 		return nil, NewValidationError("event_id", "is required")
 	}
-	if email == "" {
-		return nil, NewValidationError("email", "is required")
+	if email == "" && userID == uuid.Nil {
+		return nil, NewValidationError("email", "is required when user_id is not provided")
 	}
 	if !role.IsValid() {
 		return nil, NewValidationError("role", "must be organizer, required, or optional")

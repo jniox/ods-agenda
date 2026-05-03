@@ -37,10 +37,20 @@ func TestNewAttendee_MissingEventID(t *testing.T) {
 	assert.ErrorIs(t, err, ErrValidation)
 }
 
-func TestNewAttendee_MissingEmail(t *testing.T) {
-	_, err := NewAttendee(uuid.New(), uuid.New(), uuid.New(), "", AttendeeRoleRequired)
+func TestNewAttendee_MissingEmailAndUserID(t *testing.T) {
+	_, err := NewAttendee(uuid.New(), uuid.New(), uuid.Nil, "", AttendeeRoleRequired)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrValidation)
+}
+
+func TestNewAttendee_EmptyEmailWithUserID(t *testing.T) {
+	tenantID := uuid.New()
+	eventID := uuid.New()
+	userID := uuid.New()
+	att, err := NewAttendee(tenantID, eventID, userID, "", AttendeeRoleOrganizer)
+	require.NoError(t, err)
+	assert.Equal(t, "", att.Email)
+	assert.Equal(t, userID, att.UserID)
 }
 
 func TestNewAttendee_InvalidRole(t *testing.T) {

@@ -188,8 +188,7 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// BR-ATT-002: auto-add creator as organizer
 	var attendees []*domain.Attendee
-	creatorEmail := userID.String() + "@ods.local"
-	creatorAtt, err := domain.NewAttendee(tenantID, ev.ID, userID, creatorEmail, domain.AttendeeRoleOrganizer)
+	creatorAtt, err := domain.NewAttendee(tenantID, ev.ID, userID, "", domain.AttendeeRoleOrganizer)
 	if err == nil {
 		creatorAtt.Status = domain.AttendeeStatusAccepted
 		if createErr := h.attendeeRepo.Create(r.Context(), creatorAtt); createErr == nil {

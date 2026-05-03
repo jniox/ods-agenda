@@ -93,7 +93,7 @@ func (r *AttendeeRepo) UpdateStatus(ctx context.Context, att *domain.Attendee) e
 
 func (r *AttendeeRepo) Delete(ctx context.Context, tenantID, id uuid.UUID) error {
 	return r.db.WithTenantTx(ctx, tenantID.String(), func(tx pgx.Tx) error {
-		ct, err := tx.Exec(ctx, `DELETE FROM agenda.attendees WHERE id = $1`, id)
+		ct, err := tx.Exec(ctx, `DELETE FROM agenda.attendees WHERE id = $1 AND tenant_id = $2`, id, tenantID)
 		if err != nil {
 			return err
 		}
