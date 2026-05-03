@@ -65,6 +65,7 @@ func (h *CalendarHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID, _ := auth.UserIDFromContext(r.Context())
 
 	var req createCalendarRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body", "")
 		return
@@ -80,6 +81,13 @@ func (h *CalendarHandler) Create(w http.ResponseWriter, r *http.Request) {
 		handleDomainError(w, err)
 		return
 	}
+
+	// Emit CloudEvent
+	h.producer.Publish(r.Context(), tenantID, events.TypeCalendarCreated, "/agenda/calendars", map[string]interface{}{
+		"calendar_id": cal.ID.String(),
+		"name":        cal.Name,
+		"owner_id":    cal.OwnerID.String(),
+	})
 
 	writeJSON(w, http.StatusCreated, toCalendarResponse(cal))
 }
@@ -164,6 +172,7 @@ func (h *CalendarHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req createCalendarRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body", "")
 		return
@@ -186,6 +195,13 @@ func (h *CalendarHandler) Update(w http.ResponseWriter, r *http.Request) {
 		handleDomainError(w, err)
 		return
 	}
+
+	// Emit CloudEvent
+	h.producer.Publish(r.Context(), tenantID, events.TypeCalendarUpdated, "/agenda/calendars", map[string]interface{}{
+		"calendar_id": cal.ID.String(),
+		"name":        cal.Name,
+		"updated_by":  userID.String(),
+	})
 
 	writeJSON(w, http.StatusOK, toCalendarResponse(cal))
 }
@@ -222,6 +238,12 @@ func (h *CalendarHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		handleDomainError(w, err)
 		return
 	}
+
+	// Emit CloudEvent
+	h.producer.Publish(r.Context(), tenantID, events.TypeCalendarDeleted, "/agenda/calendars", map[string]interface{}{
+		"calendar_id": id.String(),
+		"deleted_by":  userID.String(),
+	})
 
 	w.WriteHeader(http.StatusNoContent)
 }

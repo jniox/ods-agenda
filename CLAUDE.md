@@ -4,7 +4,7 @@
 go
 
 ## Spec
-Spec not yet generated. Check /home/jniox_orbusdigital_com/dev/specs/ods-platform/specs/agenda/
+~/dev/specs/ods-platform/specs/agenda/spec.md
 
 ## Project
 ods-platform

@@ -98,7 +98,7 @@ func doRequest(r chi.Router, method, path string, body interface{}, token string
 // --- Calendar Tests ---
 
 func TestCreateCalendar_Success(t *testing.T) {
-	r, _, _, _, _, _ := setupTestRouter()
+	r, _, _, _, _, producer := setupTestRouter()
 	tenantID := uuid.New()
 	userID := uuid.New()
 	token := makeToken(t, tenantID, userID)
@@ -116,6 +116,15 @@ func TestCreateCalendar_Success(t *testing.T) {
 	assert.Equal(t, "#10B981", resp.Color)
 	assert.Equal(t, tenantID, resp.TenantID)
 	assert.Equal(t, userID, resp.OwnerID)
+
+	// Verify calendar.created CloudEvent emitted
+	found := false
+	for _, ce := range producer.Published {
+		if ce.Type == events.TypeCalendarCreated {
+			found = true
+		}
+	}
+	assert.True(t, found, "expected ods.agenda.calendar.created CloudEvent")
 }
 
 func TestCreateCalendar_MissingName(t *testing.T) {
@@ -200,7 +209,7 @@ func TestDeleteCalendar_DefaultForbidden(t *testing.T) {
 }
 
 func TestDeleteCalendar_Success(t *testing.T) {
-	r, calRepo, _, _, _, _ := setupTestRouter()
+	r, calRepo, _, _, _, producer := setupTestRouter()
 	tenantID := uuid.New()
 	ownerID := uuid.New()
 
@@ -210,6 +219,15 @@ func TestDeleteCalendar_Success(t *testing.T) {
 	token := makeToken(t, tenantID, ownerID)
 	rec := doRequest(r, http.MethodDelete, "/api/v1/calendars/"+cal.ID.String(), nil, token)
 	assert.Equal(t, http.StatusNoContent, rec.Code)
+
+	// Verify calendar.deleted CloudEvent emitted
+	found := false
+	for _, ce := range producer.Published {
+		if ce.Type == events.TypeCalendarDeleted {
+			found = true
+		}
+	}
+	assert.True(t, found, "expected ods.agenda.calendar.deleted CloudEvent")
 }
 
 // --- Event Tests ---
@@ -381,7 +399,7 @@ func TestCancelEvent_Success(t *testing.T) {
 			found = true
 		}
 	}
-	assert.True(t, found, "expected agenda.event.cancelled CloudEvent")
+	assert.True(t, found, "expected ods.agenda.event.cancelled CloudEvent")
 }
 
 // --- Attendee Tests ---

@@ -33,8 +33,11 @@ func TestNoopProducer_Close(t *testing.T) {
 
 func TestCloudEventConstants(t *testing.T) {
 	assert.Equal(t, "agenda.events", TopicAgendaEvents)
-	assert.Equal(t, "agenda.event.created", TypeEventCreated)
-	assert.Equal(t, "agenda.event.updated", TypeEventUpdated)
-	assert.Equal(t, "agenda.event.cancelled", TypeEventCancelled)
-	assert.Equal(t, "agenda.attendee.responded", TypeAttendeeResponded)
+	assert.Equal(t, "ods.agenda.event.created", TypeEventCreated)
+	assert.Equal(t, "ods.agenda.event.updated", TypeEventUpdated)
+	assert.Equal(t, "ods.agenda.event.cancelled", TypeEventCancelled)
+	assert.Equal(t, "ods.agenda.attendee.responded", TypeAttendeeResponded)
+	assert.Equal(t, "ods.agenda.calendar.created", TypeCalendarCreated)
+	assert.Equal(t, "ods.agenda.calendar.updated", TypeCalendarUpdated)
+	assert.Equal(t, "ods.agenda.calendar.deleted", TypeCalendarDeleted)
 }

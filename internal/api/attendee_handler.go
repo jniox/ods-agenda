@@ -76,6 +76,7 @@ func (h *AttendeeHandler) AddAttendee(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req addAttendeeRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body", "")
 		return
@@ -135,6 +136,7 @@ func (h *AttendeeHandler) Respond(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req respondRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body", "")
 		return
@@ -248,6 +250,7 @@ func (h *AvailabilityHandler) CheckAvailability(w http.ResponseWriter, r *http.R
 	tenantID, _ := auth.TenantIDFromContext(r.Context())
 
 	var req availabilityRequest
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body", "")
 		return

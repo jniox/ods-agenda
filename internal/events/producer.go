@@ -12,10 +12,14 @@ import (
 const (
 	TopicAgendaEvents = "agenda.events"
 
-	TypeEventCreated      = "agenda.event.created"
-	TypeEventUpdated      = "agenda.event.updated"
-	TypeEventCancelled    = "agenda.event.cancelled"
-	TypeAttendeeResponded = "agenda.attendee.responded"
+	TypeEventCreated      = "ods.agenda.event.created"
+	TypeEventUpdated      = "ods.agenda.event.updated"
+	TypeEventCancelled    = "ods.agenda.event.cancelled"
+	TypeAttendeeResponded = "ods.agenda.attendee.responded"
+
+	TypeCalendarCreated = "ods.agenda.calendar.created"
+	TypeCalendarUpdated = "ods.agenda.calendar.updated"
+	TypeCalendarDeleted = "ods.agenda.calendar.deleted"
 )
 
 // CloudEvent represents a CloudEvents v1.0 envelope.

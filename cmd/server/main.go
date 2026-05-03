@@ -44,7 +44,7 @@ func main() {
 	}
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		jwtSecret = "dev-secret"
+		log.Fatal().Msg("JWT_SECRET environment variable is required")
 	}
 	brokers := os.Getenv("REDPANDA_BROKERS")
 	if brokers == "" {
