@@ -1,0 +1,6 @@
+.git
+.github
+tasks/
+*.md
+.claude/
+*_test.go
