@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, staging, main]
+  pull_request:
+    branches: [dev, staging, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ods
+          POSTGRES_PASSWORD: ods-dev-2026
+          POSTGRES_DB: ods
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Run migrations
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: ods
+          PGPASSWORD: ods-dev-2026
+          PGDATABASE: ods
+        run: psql -f migrations/001_init.sql
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://ods:ods-dev-2026@localhost:5432/ods
+        run: go test ./... -v -race -count=1
+
+      - name: Build
+        run: go build ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    if: github.ref == 'refs/heads/staging'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t agenda:${{ github.sha }} .
