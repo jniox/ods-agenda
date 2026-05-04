@@ -5,6 +5,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rs/zerolog/log"
+
 	"github.com/orbus-digital/agenda/internal/domain"
 )
 
@@ -40,7 +43,7 @@ func writeErrorResponse(w http.ResponseWriter, status int, code, message, field 
 	})
 }
 
-func handleDomainError(w http.ResponseWriter, err error) {
+func handleDomainError(w http.ResponseWriter, r *http.Request, err error) {
 	var ve *domain.ValidationError
 	if errors.As(err, &ve) {
 		writeErrorResponse(w, http.StatusBadRequest, "VALIDATION_ERROR", ve.Error(), ve.Field)
@@ -62,5 +65,10 @@ func handleDomainError(w http.ResponseWriter, err error) {
 		writeErrorResponse(w, http.StatusUnauthorized, "UNAUTHORIZED", err.Error(), "")
 		return
 	}
+	reqID := middleware.GetReqID(r.Context())
+	log.Error().
+		Str("request_id", reqID).
+		Err(err).
+		Msg("internal server error")
 	writeErrorResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "internal server error", "")
 }

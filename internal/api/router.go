@@ -18,6 +18,7 @@ func NewRouter(db *repository.DB, producer events.Producer, jwtSecret string) ch
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
+	r.Use(RequestLogger)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*.staging.orbusdigital.com", "https://agenda.staging.orbusdigital.com"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

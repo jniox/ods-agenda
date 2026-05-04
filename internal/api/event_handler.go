@@ -147,7 +147,7 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Verify calendar exists and belongs to tenant
 	_, err = h.calendarRepo.GetByID(r.Context(), tenantID, calendarID)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -177,12 +177,12 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ev, err := domain.NewEvent(tenantID, calendarID, userID, req.Title, req.Description, req.Location,
 		req.StartTime, req.EndTime, req.AllDay, tz, req.RecurrenceRule)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
 	if err := h.eventRepo.Create(r.Context(), ev); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -263,7 +263,7 @@ func (h *EventHandler) ListByCalendar(w http.ResponseWriter, r *http.Request) {
 
 	evs, total, err := h.eventRepo.ListByCalendar(r.Context(), tenantID, calendarID, start, end, status, limit, offset)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -315,7 +315,7 @@ func (h *EventHandler) ListByTenant(w http.ResponseWriter, r *http.Request) {
 
 	evs, total, err := h.eventRepo.ListByTenant(r.Context(), tenantID, calendarID, createdBy, start, end, status, limit, offset)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -339,7 +339,7 @@ func (h *EventHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	ev, err := h.eventRepo.GetByID(r.Context(), tenantID, id)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -359,7 +359,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	ev, err := h.eventRepo.GetByID(r.Context(), tenantID, id)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -427,7 +427,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.eventRepo.Update(r.Context(), ev); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -459,7 +459,7 @@ func (h *EventHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 
 	ev, err := h.eventRepo.GetByID(r.Context(), tenantID, id)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -477,7 +477,7 @@ func (h *EventHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.eventRepo.Cancel(r.Context(), tenantID, id); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
