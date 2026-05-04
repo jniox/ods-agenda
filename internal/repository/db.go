@@ -39,7 +39,7 @@ func (db *DB) WithTenantTx(ctx context.Context, tenantID string, fn func(tx pgx.
 	}
 	defer tx.Rollback(ctx)
 
-	_, err = tx.Exec(ctx, fmt.Sprintf("SET LOCAL app.current_tenant_id = '%s'", tenantID))
+	_, err = tx.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, true)", tenantID)
 	if err != nil {
 		return fmt.Errorf("set tenant: %w", err)
 	}

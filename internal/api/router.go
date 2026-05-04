@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/orbus-digital/agenda/internal/auth"
 	"github.com/orbus-digital/agenda/internal/domain"
 	"github.com/orbus-digital/agenda/internal/events"
@@ -17,6 +18,14 @@ func NewRouter(db *repository.DB, producer events.Producer, jwtSecret string) ch
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*.staging.orbusdigital.com", "https://agenda.staging.orbusdigital.com"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Tenant-Id", "X-Correlation-Id", "X-Source-Service"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 
 	// Repositories
 	calendarRepo := repository.NewCalendarRepo(db)

@@ -48,7 +48,7 @@ func main() {
 	}
 	brokers := os.Getenv("REDPANDA_BROKERS")
 	if brokers == "" {
-		brokers = "localhost:9092"
+		log.Fatal().Msg("REDPANDA_BROKERS environment variable is required")
 	}
 
 	// Database
