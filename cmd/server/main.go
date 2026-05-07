@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/orbus-digital/agenda/internal/api"
+	"github.com/orbus-digital/agenda/internal/auth"
 	"github.com/orbus-digital/agenda/internal/events"
 	"github.com/orbus-digital/agenda/internal/repository"
 )
@@ -42,9 +43,9 @@ func main() {
 	if dbURL == "" {
 		log.Fatal().Msg("DATABASE_URL is required")
 	}
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Fatal().Msg("JWT_SECRET environment variable is required")
+	oidIssuerURL := os.Getenv("OID_ISSUER_URL")
+	if oidIssuerURL == "" {
+		log.Fatal().Msg("OID_ISSUER_URL environment variable is required")
 	}
 	brokers := os.Getenv("REDPANDA_BROKERS")
 	if brokers == "" {
@@ -64,8 +65,19 @@ func main() {
 	producer := events.NewKafkaProducer(strings.Split(brokers, ","))
 	defer producer.Close()
 
+	// JWT middleware: RS256 via JWKS
+	jwksProvider := auth.NewJWKSProvider(oidIssuerURL, 5*time.Minute)
+	jwtMw := auth.NewJWTMiddlewareJWKS(jwksProvider, oidIssuerURL)
+
 	// Router
-	router := api.NewRouter(db, producer, jwtSecret)
+	router := api.NewRouterWithConfig(api.RouterConfig{
+		DB:              db,
+		Producer:        producer,
+		JWTMiddleware:   jwtMw,
+		CORSOrigins:     api.CORSOriginsFromEnv(),
+		RateLimitPerSec: 10,
+		RateLimitBurst:  20,
+	})
 
 	// Server
 	srv := &http.Server{
