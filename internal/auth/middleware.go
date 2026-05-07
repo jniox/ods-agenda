@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/rsa"
 	"net/http"
 	"strings"
 
@@ -29,15 +30,53 @@ func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 }
 
 // JWTMiddleware validates Bearer tokens and injects tenant_id + user_id into context.
-// For development/testing, it accepts tokens signed with the provided HMAC secret.
-// In production, this would validate against the OID JWKS endpoint.
 type JWTMiddleware struct {
-	secret []byte
+	keyFunc  jwt.Keyfunc
+	issuer   string
 }
 
-// NewJWTMiddleware creates a JWT auth middleware with an HMAC secret.
+// NewJWTMiddlewareJWKS creates a JWT middleware that validates RS256 tokens against a JWKS provider.
+// It validates issuer and requires RS256 algorithm.
+func NewJWTMiddlewareJWKS(provider *JWKSProvider, issuer string) *JWTMiddleware {
+	return &JWTMiddleware{
+		issuer: issuer,
+		keyFunc: func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			kid, _ := token.Header["kid"].(string)
+			if kid == "" {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return provider.GetKey(context.Background(), kid)
+		},
+	}
+}
+
+// NewJWTMiddleware creates a JWT middleware with an HMAC secret (for testing only).
 func NewJWTMiddleware(secret string) *JWTMiddleware {
-	return &JWTMiddleware{secret: []byte(secret)}
+	return &JWTMiddleware{
+		keyFunc: func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return []byte(secret), nil
+		},
+	}
+}
+
+// NewJWTMiddlewareRSA creates a JWT middleware that validates RS256 tokens against a static RSA public key.
+// Useful for testing with a known key pair.
+func NewJWTMiddlewareRSA(pubKey *rsa.PublicKey, issuer string) *JWTMiddleware {
+	return &JWTMiddleware{
+		issuer: issuer,
+		keyFunc: func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+				return nil, jwt.ErrSignatureInvalid
+			}
+			return pubKey, nil
+		},
+	}
 }
 
 // Handler returns an http.Handler middleware that validates JWT tokens.
@@ -56,12 +95,13 @@ func (m *JWTMiddleware) Handler(next http.Handler) http.Handler {
 		}
 
 		tokenStr := parts[1]
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return m.secret, nil
-		})
+
+		parserOpts := []jwt.ParserOption{jwt.WithExpirationRequired()}
+		if m.issuer != "" {
+			parserOpts = append(parserOpts, jwt.WithIssuer(m.issuer))
+		}
+
+		token, err := jwt.Parse(tokenStr, m.keyFunc, parserOpts...)
 		if err != nil || !token.Valid {
 			writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid or expired token")
 			return
