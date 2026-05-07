@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog/log"
 )
 
 // DB wraps a pgx connection pool with tenant-aware transaction support.
@@ -35,12 +36,14 @@ func (db *DB) Close() {
 func (db *DB) WithTenantTx(ctx context.Context, tenantID string, fn func(tx pgx.Tx) error) error {
 	tx, err := db.Pool.Begin(ctx)
 	if err != nil {
+		log.Error().Err(err).Str("tenant_id", tenantID).Msg("repository: failed to begin transaction")
 		return fmt.Errorf("begin tx: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	_, err = tx.Exec(ctx, fmt.Sprintf("SET LOCAL app.current_tenant_id = '%s'", tenantID))
+	_, err = tx.Exec(ctx, "SELECT set_config('app.current_tenant_id', $1, true)", tenantID)
 	if err != nil {
+		log.Error().Err(err).Str("tenant_id", tenantID).Msg("repository: failed to set tenant context")
 		return fmt.Errorf("set tenant: %w", err)
 	}
 

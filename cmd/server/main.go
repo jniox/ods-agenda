@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/orbus-digital/agenda/internal/api"
+	"github.com/orbus-digital/agenda/internal/auth"
 	"github.com/orbus-digital/agenda/internal/events"
 	"github.com/orbus-digital/agenda/internal/repository"
 )
@@ -42,14 +43,11 @@ func main() {
 	if dbURL == "" {
 		log.Fatal().Msg("DATABASE_URL is required")
 	}
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Fatal().Msg("JWT_SECRET environment variable is required")
+	oidIssuerURL := os.Getenv("OID_ISSUER_URL")
+	if oidIssuerURL == "" {
+		log.Fatal().Msg("OID_ISSUER_URL environment variable is required")
 	}
 	brokers := os.Getenv("REDPANDA_BROKERS")
-	if brokers == "" {
-		brokers = "localhost:9092"
-	}
 
 	// Database
 	ctx := context.Background()
@@ -60,12 +58,34 @@ func main() {
 	defer db.Close()
 	log.Info().Msg("connected to database")
 
-	// Event producer
-	producer := events.NewKafkaProducer(strings.Split(brokers, ","))
-	defer producer.Close()
+	// Event producer: Kafka when configured, NoopProducer otherwise.
+	// The NoopProducer fallback unblocks Cloud Run deploys (Redpanda lives
+	// on the Coolify Docker network, unreachable from the VPC connector).
+	// Events are recorded in-memory but not published — acceptable for
+	// staging until Pub/Sub adoption.
+	var producer events.Producer
+	if brokers == "" {
+		log.Warn().Msg("REDPANDA_BROKERS unset — using NoopProducer (events dropped)")
+		producer = &events.NoopProducer{}
+	} else {
+		kp := events.NewKafkaProducer(strings.Split(brokers, ","))
+		defer kp.Close()
+		producer = kp
+	}
+
+	// JWT middleware: RS256 via JWKS
+	jwksProvider := auth.NewJWKSProvider(oidIssuerURL, 5*time.Minute)
+	jwtMw := auth.NewJWTMiddlewareJWKS(jwksProvider, oidIssuerURL)
 
 	// Router
-	router := api.NewRouter(db, producer, jwtSecret)
+	router := api.NewRouterWithConfig(api.RouterConfig{
+		DB:              db,
+		Producer:        producer,
+		JWTMiddleware:   jwtMw,
+		CORSOrigins:     api.CORSOriginsFromEnv(),
+		RateLimitPerSec: 10,
+		RateLimitBurst:  20,
+	})
 
 	// Server
 	srv := &http.Server{

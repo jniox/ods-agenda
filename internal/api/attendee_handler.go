@@ -47,7 +47,7 @@ func (h *AttendeeHandler) AddAttendee(w http.ResponseWriter, r *http.Request) {
 	// Check event exists
 	ev, err := h.eventRepo.GetByID(r.Context(), tenantID, eventID)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -94,12 +94,12 @@ func (h *AttendeeHandler) AddAttendee(w http.ResponseWriter, r *http.Request) {
 
 	att, err := domain.NewAttendee(tenantID, eventID, attUserID, req.Email, role)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
 	if err := h.attendeeRepo.Create(r.Context(), att); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h *AttendeeHandler) Respond(w http.ResponseWriter, r *http.Request) {
 
 	att, err := h.attendeeRepo.GetByID(r.Context(), tenantID, attendeeID)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -149,12 +149,12 @@ func (h *AttendeeHandler) Respond(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := att.Respond(status); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
 	if err := h.attendeeRepo.UpdateStatus(r.Context(), att); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -190,13 +190,13 @@ func (h *AttendeeHandler) RemoveAttendee(w http.ResponseWriter, r *http.Request)
 
 	ev, err := h.eventRepo.GetByID(r.Context(), tenantID, eventID)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
 	att, err := h.attendeeRepo.GetByID(r.Context(), tenantID, attendeeID)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -221,7 +221,7 @@ func (h *AttendeeHandler) RemoveAttendee(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.attendeeRepo.Delete(r.Context(), tenantID, attendeeID); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -295,7 +295,7 @@ func (h *AvailabilityHandler) CheckAvailability(w http.ResponseWriter, r *http.R
 
 	slots, err := h.repo.GetBusySlots(r.Context(), tenantID, userIDs, start, end)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 

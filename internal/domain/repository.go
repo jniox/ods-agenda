@@ -31,6 +31,7 @@ type AttendeeRepository interface {
 	Create(ctx context.Context, att *Attendee) error
 	GetByID(ctx context.Context, tenantID, id uuid.UUID) (*Attendee, error)
 	ListByEvent(ctx context.Context, tenantID, eventID uuid.UUID) ([]*Attendee, error)
+	ListByEventIDs(ctx context.Context, tenantID uuid.UUID, eventIDs []uuid.UUID) (map[uuid.UUID][]*Attendee, error)
 	UpdateStatus(ctx context.Context, att *Attendee) error
 	Delete(ctx context.Context, tenantID, id uuid.UUID) error
 }

@@ -17,8 +17,13 @@ FROM alpine:3.21
 
 RUN apk add --no-cache ca-certificates tzdata
 
-COPY --from=builder /agenda /agenda
-COPY migrations/ /migrations/
+RUN addgroup -g 1000 -S nonroot && \
+    adduser -u 1000 -S nonroot -G nonroot
+
+COPY --from=builder --chown=nonroot:nonroot /agenda /agenda
+COPY --chown=nonroot:nonroot migrations/ /migrations/
+
+USER 1000
 
 EXPOSE 8088
 

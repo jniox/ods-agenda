@@ -76,6 +76,33 @@ func (r *AttendeeRepo) ListByEvent(ctx context.Context, tenantID, eventID uuid.U
 	return attendees, err
 }
 
+func (r *AttendeeRepo) ListByEventIDs(ctx context.Context, tenantID uuid.UUID, eventIDs []uuid.UUID) (map[uuid.UUID][]*domain.Attendee, error) {
+	result := make(map[uuid.UUID][]*domain.Attendee)
+	if len(eventIDs) == 0 {
+		return result, nil
+	}
+
+	err := r.db.WithTenantTx(ctx, tenantID.String(), func(tx pgx.Tx) error {
+		rows, err := tx.Query(ctx,
+			`SELECT id, tenant_id, event_id, user_id, email, status, role, responded_at, created_at
+			 FROM agenda.attendees WHERE event_id = ANY($1) ORDER BY created_at ASC`, eventIDs)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var att domain.Attendee
+			if err := scanAttendeeRows(rows, &att); err != nil {
+				return err
+			}
+			result[att.EventID] = append(result[att.EventID], &att)
+		}
+		return rows.Err()
+	})
+	return result, err
+}
+
 func (r *AttendeeRepo) UpdateStatus(ctx context.Context, att *domain.Attendee) error {
 	return r.db.WithTenantTx(ctx, att.TenantID.String(), func(tx pgx.Tx) error {
 		ct, err := tx.Exec(ctx,

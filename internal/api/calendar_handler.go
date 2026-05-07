@@ -73,12 +73,12 @@ func (h *CalendarHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	cal, err := domain.NewCalendar(tenantID, userID, req.Name, req.Description, req.Color)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
 	if err := h.repo.Create(r.Context(), cal); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -114,7 +114,7 @@ func (h *CalendarHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	calendars, total, err := h.repo.List(r.Context(), tenantID, ownerID, limit, offset)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -142,7 +142,7 @@ func (h *CalendarHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	cal, err := h.repo.GetByID(r.Context(), tenantID, id)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -161,7 +161,7 @@ func (h *CalendarHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	cal, err := h.repo.GetByID(r.Context(), tenantID, id)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -187,12 +187,12 @@ func (h *CalendarHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := cal.Validate(); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
 	if err := h.repo.Update(r.Context(), cal); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -218,7 +218,7 @@ func (h *CalendarHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	cal, err := h.repo.GetByID(r.Context(), tenantID, id)
 	if err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
@@ -235,7 +235,7 @@ func (h *CalendarHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.SoftDelete(r.Context(), tenantID, id); err != nil {
-		handleDomainError(w, err)
+		handleDomainError(w, r, err)
 		return
 	}
 
