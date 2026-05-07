@@ -48,9 +48,6 @@ func main() {
 		log.Fatal().Msg("OID_ISSUER_URL environment variable is required")
 	}
 	brokers := os.Getenv("REDPANDA_BROKERS")
-	if brokers == "" {
-		log.Fatal().Msg("REDPANDA_BROKERS environment variable is required")
-	}
 
 	// Database
 	ctx := context.Background()
@@ -61,9 +58,20 @@ func main() {
 	defer db.Close()
 	log.Info().Msg("connected to database")
 
-	// Event producer
-	producer := events.NewKafkaProducer(strings.Split(brokers, ","))
-	defer producer.Close()
+	// Event producer: Kafka when configured, NoopProducer otherwise.
+	// The NoopProducer fallback unblocks Cloud Run deploys (Redpanda lives
+	// on the Coolify Docker network, unreachable from the VPC connector).
+	// Events are recorded in-memory but not published — acceptable for
+	// staging until Pub/Sub adoption.
+	var producer events.Producer
+	if brokers == "" {
+		log.Warn().Msg("REDPANDA_BROKERS unset — using NoopProducer (events dropped)")
+		producer = &events.NoopProducer{}
+	} else {
+		kp := events.NewKafkaProducer(strings.Split(brokers, ","))
+		defer kp.Close()
+		producer = kp
+	}
 
 	// JWT middleware: RS256 via JWKS
 	jwksProvider := auth.NewJWKSProvider(oidIssuerURL, 5*time.Minute)
