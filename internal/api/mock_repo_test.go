@@ -243,6 +243,22 @@ func (m *mockAttendeeRepo) ListByEvent(_ context.Context, tenantID, eventID uuid
 	return result, nil
 }
 
+func (m *mockAttendeeRepo) ListByEventIDs(_ context.Context, tenantID uuid.UUID, eventIDs []uuid.UUID) (map[uuid.UUID][]*domain.Attendee, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	idSet := make(map[uuid.UUID]bool, len(eventIDs))
+	for _, id := range eventIDs {
+		idSet[id] = true
+	}
+	result := make(map[uuid.UUID][]*domain.Attendee)
+	for _, a := range m.attendees {
+		if a.TenantID == tenantID && idSet[a.EventID] {
+			result[a.EventID] = append(result[a.EventID], a)
+		}
+	}
+	return result, nil
+}
+
 func (m *mockAttendeeRepo) UpdateStatus(_ context.Context, att *domain.Attendee) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

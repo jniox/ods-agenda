@@ -267,10 +267,16 @@ func (h *EventHandler) ListByCalendar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Batch fetch attendees for all events (avoids N+1)
+	eventIDs := make([]uuid.UUID, len(evs))
+	for i, ev := range evs {
+		eventIDs[i] = ev.ID
+	}
+	attendeeMap, _ := h.attendeeRepo.ListByEventIDs(r.Context(), tenantID, eventIDs)
+
 	data := make([]eventResponse, len(evs))
 	for i, ev := range evs {
-		attendees, _ := h.attendeeRepo.ListByEvent(r.Context(), tenantID, ev.ID)
-		data[i] = toEventResponse(ev, attendees)
+		data[i] = toEventResponse(ev, attendeeMap[ev.ID])
 	}
 
 	writeJSON(w, http.StatusOK, PaginatedResponse{Data: data, Total: total, Limit: limit, Offset: offset})
@@ -319,10 +325,16 @@ func (h *EventHandler) ListByTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Batch fetch attendees for all events (avoids N+1)
+	eventIDs := make([]uuid.UUID, len(evs))
+	for i, ev := range evs {
+		eventIDs[i] = ev.ID
+	}
+	attendeeMap, _ := h.attendeeRepo.ListByEventIDs(r.Context(), tenantID, eventIDs)
+
 	data := make([]eventResponse, len(evs))
 	for i, ev := range evs {
-		attendees, _ := h.attendeeRepo.ListByEvent(r.Context(), tenantID, ev.ID)
-		data[i] = toEventResponse(ev, attendees)
+		data[i] = toEventResponse(ev, attendeeMap[ev.ID])
 	}
 
 	writeJSON(w, http.StatusOK, PaginatedResponse{Data: data, Total: total, Limit: limit, Offset: offset})
