@@ -73,14 +73,16 @@ func TestPubsubProducer_Publish(t *testing.T) {
 
 	require.NotNil(t, receivedMsg, "expected to receive a message from subscription")
 
-	// Assert Pub/Sub message attributes match CloudEvents spec (AC-003)
+	// Assert Pub/Sub message attributes match CloudEvents spec (AC-003 / ADR-003)
 	assert.Equal(t, "1.0", receivedMsg.Attributes["ce-specversion"])
 	assert.Equal(t, eventType, receivedMsg.Attributes["ce-type"])
 	assert.Equal(t, source, receivedMsg.Attributes["ce-source"])
 	assert.Equal(t, "application/json", receivedMsg.Attributes["ce-datacontenttype"])
-	assert.Equal(t, tenantID.String(), receivedMsg.Attributes["tenant_id"])
+	assert.Equal(t, tenantID.String(), receivedMsg.Attributes["ce-tenantid"])
 	assert.NotEmpty(t, receivedMsg.Attributes["ce-id"])
 	assert.NotEmpty(t, receivedMsg.Attributes["ce-time"])
+	assert.NotEmpty(t, receivedMsg.Attributes["ce-correlationid"])
+	assert.Equal(t, "agenda", receivedMsg.Attributes["ce-sourceservice"])
 
 	// Assert ordering key is tenant_id
 	assert.Equal(t, tenantID.String(), receivedMsg.OrderingKey)

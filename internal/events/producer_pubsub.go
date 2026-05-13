@@ -55,6 +55,9 @@ func (p *PubsubProducer) Publish(ctx context.Context, tenantID uuid.UUID, eventT
 
 	publishCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 
+	// Extract or generate correlation ID from context
+	correlationID := CorrelationIDFromContext(ctx)
+
 	result := p.topic.Publish(publishCtx, &pubsub.Message{
 		Data: payload,
 		Attributes: map[string]string{
@@ -64,7 +67,9 @@ func (p *PubsubProducer) Publish(ctx context.Context, tenantID uuid.UUID, eventT
 			"ce-source":          source,
 			"ce-time":            ce.Time,
 			"ce-datacontenttype": "application/json",
-			"tenant_id":          tenantID.String(),
+			"ce-tenantid":        tenantID.String(),
+			"ce-correlationid":   correlationID,
+			"ce-sourceservice":   "agenda",
 		},
 		OrderingKey: tenantID.String(),
 	})
