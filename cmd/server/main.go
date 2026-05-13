@@ -47,8 +47,6 @@ func main() {
 	if oidIssuerURL == "" {
 		log.Fatal().Msg("OID_ISSUER_URL environment variable is required")
 	}
-	brokers := os.Getenv("REDPANDA_BROKERS")
-
 	// Database
 	ctx := context.Background()
 	db, err := repository.NewDB(ctx, dbURL)
@@ -58,20 +56,23 @@ func main() {
 	defer db.Close()
 	log.Info().Msg("connected to database")
 
-	// Event producer: Kafka when configured, NoopProducer otherwise.
-	// The NoopProducer fallback unblocks Cloud Run deploys (Redpanda lives
-	// on the Coolify Docker network, unreachable from the VPC connector).
-	// Events are recorded in-memory but not published — acceptable for
-	// staging until Pub/Sub adoption.
-	var producer events.Producer
-	if brokers == "" {
-		log.Warn().Msg("REDPANDA_BROKERS unset — using NoopProducer (events dropped)")
-		producer = &events.NoopProducer{}
-	} else {
-		kp := events.NewKafkaProducer(strings.Split(brokers, ","))
-		defer kp.Close()
-		producer = kp
+	// Event producer: selected via EVENT_BUS env var (AC-001).
+	//   EVENT_BUS=pubsub  → Cloud Pub/Sub (production path)
+	//   EVENT_BUS=kafka   → legacy Kafka/Redpanda
+	//   EVENT_BUS unset   → Kafka fallback (backward-compat)
+	eventCfg := events.Config{
+		Backend:        os.Getenv("EVENT_BUS"),
+		GCPProjectID:   os.Getenv("GCP_PROJECT_ID"),
+		PubsubTopic:    os.Getenv("PUBSUB_TOPIC"),
+		PubsubTopicDLQ: os.Getenv("PUBSUB_TOPIC_DLQ"),
+		KafkaBrokers:   strings.Split(os.Getenv("REDPANDA_BROKERS"), ","),
 	}
+	producer, err := events.NewProducer(ctx, eventCfg)
+	if err != nil {
+		log.Fatal().Err(err).Str("backend", eventCfg.Backend).Msg("failed to create event producer")
+	}
+	defer producer.Close()
+	log.Info().Str("backend", eventCfg.Backend).Msg("event producer initialized")
 
 	// JWT middleware: RS256 via JWKS
 	jwksProvider := auth.NewJWKSProvider(oidIssuerURL, 5*time.Minute)
