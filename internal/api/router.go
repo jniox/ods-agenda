@@ -146,8 +146,13 @@ func NewRouter(db *repository.DB, producer events.Producer, jwtSecret string) ch
 func NewRouterWithConfig(cfg RouterConfig) chi.Router {
 	r := chi.NewRouter()
 
+	// JSON error handlers for unknown routes and wrong methods
+	r.NotFound(NotFoundHandler().ServeHTTP)
+	r.MethodNotAllowed(MethodNotAllowedHandler().ServeHTTP)
+
 	// Middleware stack
 	r.Use(middleware.RequestID)
+	r.Use(RequestIDMiddleware)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(SecurityHeaders)
@@ -173,8 +178,8 @@ func NewRouterWithConfig(cfg RouterConfig) chi.Router {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   origins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Tenant-Id", "X-Correlation-Id", "X-Source-Service"},
-		ExposedHeaders:   []string{"Link"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Tenant-Id", "X-Correlation-Id", "X-Source-Service", "X-Request-Id"},
+		ExposedHeaders:   []string{"Link", "X-Request-Id"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
